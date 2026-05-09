@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مخزن گیت‌هاب - نمایش فایل‌ها</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #24292e 0%, #1a1d21 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .repo-info {
+            background: #f6f8fa;
+            padding: 20px;
+            border-bottom: 1px solid #e1e4e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .repo-url {
+            flex: 1;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .repo-url input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5da;
+            border-radius: 6px;
+            font-family: monospace;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .btn {
+            background: #2ea44f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #22863a;
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .content {
+            display: flex;
+            min-height: 500px;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f6f8fa;
+            border-left: 1px solid #e1e4e8;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+
+        .file-list {
+            list-style: none;
+        }
+
+        .file-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #e1e4e8;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-item:hover {
+            background: #e1e4e8;
+        }
+
+        .file-item.active {
+            background: #0366d6;
+            color: white;
+        }
+
+        .file-icon {
+            font-size: 18px;
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .main-view {
+            flex: 1;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .file-content {
+            background: #f6f8fa;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .file-content pre {
+            margin: 0;
+            font-family: inherit;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #586069;
+        }
+
+        .error {
+            color: #d73a49;
+            background: #ffeef0;
+            padding: 15px;
+            border-radius: 6px;
+            border-right: 3px solid #d73a49;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #586069;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 نمایشگر فایل‌های مخزن گیت‌هاب</h1>
+            <p>محتویات تمام فایل‌های مخزن را به صورت خودکار مشاهده کنید</p>
+        </div>
+        
+        <div class="repo-info">
+            <div class="repo-url">
+                <input type="text" id="repoInput" placeholder="آدرس مخزن گیت‌هاب (مثال: https://github.com/username/repo)" dir="ltr">
+            </div>
+            <button class="btn" onclick="loadRepository()">بارگذاری مخزن</button>
+            <button class="btn" onclick="loadCurrentRepo()" style="background: #6f42c1;">بارگذاری همین مخزن</button>
+        </div>
+        
+        <div class="content">
+            <div class="sidebar">
+                <div id="fileList" class="file-list">
+                    <div class="empty-state" style="padding: 40px 20px;">
+                        <svg fill="#586069" viewBox="0 0 16 16" width="48" height="48">
+                            <path d="M1.5 1.5a.5.5 0 0 1 .5-.5h12a.5.5 0 0 1 .5.5v12a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V1.5zM2 2v11h11V2H2z"/>
+                            <path d="M4 4h8v1H4V4zm0 2h8v1H4V6zm0 2h5v1H4V8z"/>
+                        </svg>
+                        <p>یک مخزن گیت‌هاب را بارگذاری کنید</p>
+                    </div>
+                </div>
+            </div>
+            <div class="main-view">
+                <div id="mainContent" class="empty-state">
+                    <svg fill="#586069" viewBox="0 0 16 16" width="64" height="64">
+                        <path d="M3.75 1.5a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25V3.75a.25.25 0 0 0-.25-.25H8.75L7.5 2H3.75z"/>
+                        <path d="M8.5 5h-5v1h5V5zm0 2h-5v1h5V7zm0 2h-5v1h5V9z"/>
+                    </svg>
+                    <p>برای مشاهده محتویات فایل‌ها، روی هر فایل کلیک کنید</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFiles = [];
+        let currentRepo = '';
+
+        // تابع برای استخراج owner و repo از آدرس گیت‌هاب
+        function parseGitHubUrl(url) {
+            try {
+                // حذف https:// و http:// و www.
+                let cleanUrl = url.replace(/^https?:\/\//, '').replace(/^www\./, '');
+                
+                // حذف .git در انتها
+                cleanUrl = cleanUrl.replace(/\.git$/, '');
+                
+                // حذف trailing slash
+                cleanUrl = cleanUrl.replace(/\/$/, '');
+                
+                const parts = cleanUrl.split('/');
+                if (parts.length >= 2 && parts[0] === 'github.com') {
+                    return {
+                        owner: parts[1],
+                        repo: parts[2]
+                    };
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // بارگذاری فایل‌های مخزن با استفاده از GitHub API
+        async function loadRepositoryFromUrl(repoUrl) {
+            const parsed = parseGitHubUrl(repoUrl);
+            if (!parsed) {
+                alert('آدرس مخزن نامعتبر است. لطفاً آدرسی مانند https://github.com/username/repo وارد کنید');
+                return false;
+            }
+            
+            const { owner, repo } = parsed;
+            currentRepo = `${owner}/${repo}`;
+            
+            // نمایش وضعیت بارگذاری
+            const fileListDiv = document.getElementById('fileList');
+            fileListDiv.innerHTML = '<div class="loading">⏳ در حال بارگذاری فایل‌ها...</div>';
+            
+            try {
+                // دریافت محتویات شاخه اصلی مخزن
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`خطا: ${response.status} - ${response.statusText}`);
+                }
+                
+                const files = await response.json();
+                
+                // فیلتر کردن فقط فایل‌ها (نه پوشه‌ها)
+                currentFiles = files.filter(item => item.type === 'file');
+                
+                if (currentFiles.length === 0) {
+                    fileListDiv.innerHTML = '<div class="empty-state" style="padding: 40px 20px;"><p>📂 هیچ فایلی در شاخه اصلی یافت نشد</p></div>';
+                    return true;
+                }
+                
+                // نمایش لیست فایل‌ها
+                displayFileList(currentFiles);
+                return true;
+                
+            } catch (error) {
+                console.error('Error loading repository:', error);
+                fileListDiv.innerHTML = `<div class="error">❌ خطا در بارگذاری مخزن: ${error.message}</div>`;
+                return false;
+            }
+        }
+        
+        // نمایش لیست فایل‌ها
+        function displayFileList(files) {
+            const fileListDiv = document.getElementById('fileList');
+            fileListDiv.innerHTML = '';
+            
+            const ul = document.createElement('ul');
+            ul.className = 'file-list';
+            
+            files.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.onclick = () => loadFileContent(file, index);
+                
+                // تعیین آیکون بر اساس نوع فایل
+                let icon = '📄';
+                const extension = file.name.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension)) {
+                    icon = '🖼️';
+                } else if (['html', 'htm'].includes(extension)) {
+                    icon = '🌐';
+                } else if (['css'].includes(extension)) {
+                    icon = '🎨';
+                } else if (['js', 'ts'].includes(extension)) {
+                    icon = '💻';
+                } else if (['json'].includes(extension)) {
+                    icon = '📋';
+                } else if (['md', 'markdown'].includes(extension)) {
+                    icon = '📝';
+                } else if (['py'].includes(extension)) {
+                    icon = '🐍';
+                } else if (['txt'].includes(extension)) {
+                    icon = '📃';
+                } else if (['xml', 'svg'].includes(extension)) {
+                    icon = '🔧';
+                }
+                
+                li.innerHTML = `
+                    <span class="file-icon">${icon}</span>
+                    <span class="file-name">${file.name}</span>
+                    <span style="font-size: 11px; opacity: 0.7;">${formatFileSize(file.size)}</span>
+                `;
+                
+                ul.appendChild(li);
+            });
+            
+            fileListDiv.appendChild(ul);
+        }
+        
+        // فرمت کردن حجم فایل
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // بارگذاری محتوای فایل
+        async function loadFileContent(file, index) {
+            // هایلایت کردن آیتم فعال
+            const fileItems = document.querySelectorAll('.file-item');
+            fileItems.forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = '<div class="loading">⏳ در حال بارگذاری محتوای فایل...</div>';
+            
+            try {
+                const response = await fetch(file.download_url);
+                
+                if (!response.ok) {
+                    throw new Error(`خطا در بارگذاری فایل: ${response.status}`);
+                }
+                
+                let content;
+                const extension = file.name.split('.').pop().toLowerCase();
+                
+                // اگر فایل تصویری است
+                if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(extension)) {
+                    content = `<div style="text-align: center;">
+                        <img src="${file.download_url}" alt="${file.name}" style="max-width: 100%; max-height: 500px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        <p style="margin-top: 15px; color: #586069;">${file.name}</p>
+                    </div>`;
+                } 
+                // اگر فایل HTML است
+                else if (extension === 'html' || extension === 'htm') {
+                    const htmlContent = await response.text();
+                    content = `<div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e1e4e8;">
+                        <div style="background: #f6f8fa; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                            <strong>📄 فایل HTML:</strong> ${file.name}
+                            <button onclick="previewHTML()" style="float: left; padding: 5px 10px; background: #0366d6; color: white; border: none; border-radius: 4px; cursor: pointer;">پیش‌نمایش</button>
+                        </div>
+                        <pre style="background: #f6f8fa; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 13px;">${escapeHtml(htmlContent)}</pre>
+                    </div>`;
+                    
+                    // ذخیره محتوای HTML برای پیش‌نمایش
+                    window.currentHTMLContent = htmlContent;
+                    window.previewHTML = function() {
+                        const previewWindow = window.open();
+                        previewWindow.document.write(htmlContent);
+                        previewWindow.document.close();
+                    };
+                }
+                // فایل‌های متنی
+                else {
+                    const textContent = await response.text();
+                    content = `<div class="file-content">
+                        <div style="background: #f1f3f5; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                            <strong>📄 ${file.name}</strong>
+                            <span style="float: left; font-size: 12px; color: #586069;">${formatFileSize(file.size)}</span>
+                        </div>
+                        <pre>${escapeHtml(textContent)}</pre>
+                    </div>`;
+                }
+                
+                mainContent.innerHTML = content;
+                
+            } catch (error) {
+                console.error('Error loading file:', error);
+                mainContent.innerHTML = `<div class="error">❌ خطا در بارگذاری محتوای فایل: ${error.message}</div>`;
+            }
+        }
+        
+        // تابع کمکی برای escape کردن HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // بارگذاری مخزن از طریق ورودی کاربر
+        async function loadRepository() {
+            const repoInput = document.getElementById('repoInput');
+            const repoUrl = repoInput.value.trim();
+            
+            if (!repoUrl) {
+                alert('لطفاً آدرس مخزن گیت‌هاب را وارد کنید');
+                return;
+            }
+            
+            await loadRepositoryFromUrl(repoUrl);
+        }
+        
+        // بارگذاری مخزن جاری (همین مخزن)
+        async function loadCurrentRepo() {
+            // تلاش برای تشخیص مخزن جاری از آدرس صفحه
+            const currentUrl = window.location.href;
+            const githubMatch = currentUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+            
+            if (githubMatch) {
+                const repoUrl = `https://github.com/${githubMatch[1]}/${githubMatch[2]}`;
+                document.getElementById('repoInput').value = repoUrl;
+                await loadRepositoryFromUrl(repoUrl);
+            } else {
+                // اگر در GitHub Pages هستیم، سعی می‌کنیم از pathname استفاده کنیم
+                const pathParts = window.location.pathname.split('/').filter(p => p);
+                if (pathParts.length >= 2) {
+                    const owner = pathParts[0];
+                    const repo = pathParts[1];
+                    const repoUrl = `https://github.com/${owner}/${repo}`;
+                    document.getElementById('repoInput').value = repoUrl;
+                    await loadRepositoryFromUrl(repoUrl);
+                } else {
+                    alert('امکان تشخیص خودکار مخزن وجود ندارد. لطفاً آدرس مخزن را به صورت دستی وارد کنید.');
+                }
+            }
+        }
+        
+        // بارگذاری خودکار در صورتی که آدرس مخزن در URL باشد
+        async function autoLoadFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const repoParam = urlParams.get('repo');
+            if (repoParam) {
+                document.getElementById('repoInput').value = repoParam;
+                await loadRepositoryFromUrl(repoParam);
+            }
+        }
+        
+        // اضافه کردن قابلیت Enter در input
+        document.addEventListener('DOMContentLoaded', () => {
+            const repoInput = document.getElementById('repoInput');
+            if (repoInput) {
+                repoInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        loadRepository();
+                    }
+                });
+            }
+            autoLoadFromURL();
+        });
+    </script>
+</body>
+</html>
